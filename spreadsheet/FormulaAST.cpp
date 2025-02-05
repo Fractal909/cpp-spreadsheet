@@ -144,18 +144,20 @@ namespace ASTImpl {
 
             double Evaluate(SheetInterface& sheet) const override {
                 double val = 0;
+                auto lval = lhs_->Evaluate(sheet);
+                auto rval = rhs_->Evaluate(sheet);
                 switch (type_) {
                 case Add:
-                    val = lhs_->Evaluate(sheet) + rhs_->Evaluate(sheet);
+                    val = lval + rval;
                     break;
                 case Subtract:
-                    val = lhs_->Evaluate(sheet) - rhs_->Evaluate(sheet);
+                    val = lval - rval;
                     break;
                 case Multiply:
-                    val = lhs_->Evaluate(sheet) * rhs_->Evaluate(sheet);
+                    val = lval * rval;
                     break;
                 case Divide:
-                    val = lhs_->Evaluate(sheet) / rhs_->Evaluate(sheet);
+                    val = lval / rval;
                     break;
                 }
 
@@ -274,7 +276,7 @@ namespace ASTImpl {
                 }
 
                 //
-                return -1;
+                return 0;
             }
 
         private:

@@ -29,8 +29,6 @@ public:
 private:
     // Можете дополнить ваш класс нужными полями и методами
     bool CheckPosition(const Position& pos) const;
-    bool CheckCyclicDependence(const CellInterface* check_cell, const CellInterface* root_cell);
-
     std::unordered_map<Position, std::unique_ptr<Cell>, PosHash> cells_;
 };
 

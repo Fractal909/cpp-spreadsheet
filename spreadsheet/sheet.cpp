@@ -18,51 +18,12 @@ void Sheet::SetCell(Position pos, std::string text) {
         throw InvalidPositionException("Invalid_Pos");
     }
 
-    //Check repeat
-    if (auto ptr = GetCell(pos)) {
-        if (ptr->GetText() == text) {
-            return;
-        }
-    }
-
-    //Cell backup
-    std::string backup;
     if (GetCell(pos)) {
-        backup = GetCell(pos)->GetText();
+        cells_.at(pos)->Set(text, pos);
     }
-
-
-    //Set cell
-    auto new_cell = cells_.insert_or_assign(pos, std::make_unique<Cell>(*this)).first->second.get();
-    new_cell->Set(text);
-
-
-
-    //Create missing cells
-    auto referenced_cells = new_cell->GetReferencedCells();
-    for (const auto& cell : referenced_cells) {
-        if (!GetCell(cell)) {
-            auto created = cells_.emplace(cell, std::make_unique<Cell>(*this));
-            created.first->second->Set("");
-        }
-    }
-
-    //Check Cyclid Dependence
-    if (CheckCyclicDependence(new_cell, new_cell)) {
-        auto back = cells_.insert_or_assign(pos, std::make_unique<Cell>(*this));
-        back.first->second->Set(backup);
-
-        throw CircularDependencyException("XXX");
-    }
-
-    // Update Dependent Cells
-    for (const auto& cell : referenced_cells) {
-        GetCell(cell)->AddDependentCell(pos);
-    }
-
-    //Invalidate Cache
-    for (const auto& cell : GetCell(pos)->GetDependentCells()) {
-        GetCell(cell)->InvalidateCache();
+    else {
+        auto new_cell = cells_.emplace(pos, std::make_unique<Cell>(*this)).first->second.get();
+        new_cell->Set(text, pos);
     }
 }
 
@@ -70,8 +31,7 @@ const CellInterface* Sheet::GetCell(Position pos) const {
     if (CheckPosition(pos)) {
         auto res = cells_.find(pos);
         if (res != cells_.end()) {
-            auto x = res->second.get();
-            return x;
+            return res->second.get();
         }
         else {
             return nullptr;
@@ -86,8 +46,7 @@ CellInterface* Sheet::GetCell(Position pos) {
     if (CheckPosition(pos)) {
         auto res = cells_.find(pos);
         if (res != cells_.end()) {
-            auto x = res->second.get();
-            return x;
+            return res->second.get();
         }
         else {
             return nullptr;
@@ -172,17 +131,4 @@ bool Sheet::CheckPosition(const Position& pos) const {
 
 std::unique_ptr<SheetInterface> CreateSheet() {
     return std::make_unique<Sheet>();
-}
-
-bool Sheet::CheckCyclicDependence(const CellInterface* check_cell, const CellInterface* root_cell) {
-    auto cells = root_cell->GetReferencedCells();
-    for (const auto& cell : cells) {
-        if (check_cell == GetCell(cell)) {
-            return true;
-        }
-        else {
-            return CheckCyclicDependence(check_cell, GetCell(cell));
-        }
-    }
-    return false;
 }

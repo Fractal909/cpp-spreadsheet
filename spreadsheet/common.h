@@ -110,9 +110,9 @@ public:
 
     ///////
     virtual std::vector<Position> GetDependentCells() const = 0;
-    virtual void AddDependentCell(Position cell) const = 0;
-    virtual void RemoveDependentCell(Position cell) const = 0;
-    virtual void InvalidateCache() const = 0;
+    virtual void AddDependentCell(Position pos) const = 0;
+    virtual void RemoveDependentCell(Position pos) const = 0;
+    virtual void InvalidateCellsCache() const = 0;
 };
 
 inline constexpr char FORMULA_SIGN = '=';

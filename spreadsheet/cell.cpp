@@ -37,18 +37,54 @@ Cell::~Cell() {
 
 }
 
-void Cell::Set(std::string text) {
+void Cell::Set(std::string text, Position pos) {
 
-    if (text.length() > 1 && text.at(0) == '=') {
+    //Check repeat
+    if (text == GetText()) {
+        return;
+    }
+
+    //Update Dependent Cells
+    for (const auto& cell : GetReferencedCells()) {
+        sheet_.GetCell(cell)->RemoveDependentCell(pos);
+    }
+
+    auto backup = std::move(impl_);
+
+    if (text.length() > 1 && text.at(0) == FORMULA_SIGN) {
         impl_ = std::make_unique<FormulaImpl>(text.substr(1));
     }
-    else {
+    else if (!text.empty()) {
         impl_ = std::make_unique<TextImpl>(text);
     }
+    else {
+        impl_ = std::make_unique<EmptyImpl>();
+    }
+
+    //Create missing cells
+    for (const auto& cell : GetReferencedCells()) {
+        if (!sheet_.GetCell(cell)) {
+            sheet_.SetCell(cell, "");
+        }
+    }
+
+    //Check Cyclic Dependence
+    if (CheckCyclicDependence(this)) {
+        impl_ = std::move(backup);
+        throw CircularDependencyException("CircularDependency");
+    }
+
+    //Update Dependent Cells
+    for (const auto& cell : GetReferencedCells()) {
+        sheet_.GetCell(cell)->AddDependentCell(pos);
+    }
+
+    InvalidateCellsCache();
 }
 
 void Cell::Clear() {
-
+    InvalidateCellsCache();
+    impl_.reset();
 }
 
 Cell::Value Cell::GetValue() const {
@@ -73,11 +109,11 @@ Cell::Value Cell::GetValue() const {
             return *formula_error_ptr;
         }
         //
-        return -1.0;
+        return 0.0;
     }
     if (auto ptr = dynamic_cast<TextImpl*>(impl_.get())) {
         std::string str = ptr->GetText();
-        if (!str.empty() && str.at(0) == '\'') {
+        if (!str.empty() && str.at(0) == ESCAPE_SIGN) {
             return str.substr(1);
         }
 
@@ -86,7 +122,7 @@ Cell::Value Cell::GetValue() const {
         return ptr->GetText();
     }
     //
-    return -1.0;
+    return 0.0;
 }
 std::string Cell::GetText() const {
     if (auto ptr = dynamic_cast<FormulaImpl*>(impl_.get())) {
@@ -116,12 +152,32 @@ std::vector<Position> Cell::GetDependentCells() const {
     return result;
 }
 
-void Cell::AddDependentCell(Position cell) const {
-    dependent_cells_.insert(cell);
+void Cell::AddDependentCell(Position pos) const {
+    dependent_cells_.insert(pos);
 }
-void Cell::RemoveDependentCell(Position cell) const {
-    dependent_cells_.erase(cell);
+void Cell::RemoveDependentCell(Position pos) const {
+    dependent_cells_.erase(pos);
 }
-void Cell::InvalidateCache() const {
+
+bool Cell::CheckCyclicDependence(CellInterface* cell) {
+
+    auto cells = cell->GetReferencedCells();
+
+    for (const auto& cell : cells) {
+        if (reinterpret_cast<CellInterface*>(this) == sheet_.GetCell(cell)) {
+            return true;
+        }
+        else {
+            return CheckCyclicDependence(sheet_.GetCell(cell));
+        }
+    }
+
+    return false;
+}
+
+void Cell::InvalidateCellsCache() const {
+    for (const auto& cell : GetDependentCells()) {
+        sheet_.GetCell(cell)->InvalidateCellsCache();
+    }
     cache_valid_ = false;
 }

@@ -37,7 +37,7 @@ public:
     Cell(SheetInterface& sheet);
     ~Cell();
 
-    void Set(std::string text);
+    void Set(std::string text, Position pos);
     void Clear();
 
     Value GetValue() const override;
@@ -46,11 +46,12 @@ public:
     std::vector<Position> GetReferencedCells() const override;
 
     std::vector<Position> GetDependentCells() const override;
-    void AddDependentCell(Position cell) const override;
-    void RemoveDependentCell(Position cell) const override;
-    void InvalidateCache() const override;
+    void AddDependentCell(Position pos) const override;
+    void RemoveDependentCell(Position pos) const override;
 
 private:
+    bool CheckCyclicDependence(CellInterface* cell);
+    void InvalidateCellsCache() const override;
     std::unique_ptr<Impl> impl_;
     SheetInterface& sheet_;
 
