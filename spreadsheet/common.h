@@ -39,16 +39,26 @@ public:
     enum class Category {
         Ref,    // ссылка на ячейку с некорректной позицией
         Value,  // ячейка не может быть трактована как число
-        Div0,  // в результате вычисления возникло деление на ноль
+        Arithmetic,  // в результате вычисления возникло деление на ноль
     };
 
-    FormulaError(Category category);
+    FormulaError(Category category)
+        :category_(category)
+    {
 
-    Category GetCategory() const;
+    }
 
-    bool operator==(FormulaError rhs) const;
+    Category GetCategory() const {
+        return category_;
+    }
 
-    std::string_view ToString() const;
+    bool operator==(FormulaError rhs) const {
+        return category_ == rhs.category_;
+    }
+
+    std::string_view ToString() const {
+        return std::string_view();
+    }
 
 private:
     Category category_;
@@ -97,6 +107,12 @@ public:
     // формуле. Список отсортирован по возрастанию и не содержит повторяющихся
     // ячеек. В случае текстовой ячейки список пуст.
     virtual std::vector<Position> GetReferencedCells() const = 0;
+
+    ///////
+    virtual std::vector<Position> GetDependentCells() const = 0;
+    virtual void AddDependentCell(Position cell) const = 0;
+    virtual void RemoveDependentCell(Position cell) const = 0;
+    virtual void InvalidateCache() const = 0;
 };
 
 inline constexpr char FORMULA_SIGN = '=';
@@ -147,3 +163,10 @@ public:
 
 // Создаёт готовую к работе пустую таблицу.
 std::unique_ptr<SheetInterface> CreateSheet();
+
+
+struct PosHash {
+    std::size_t operator()(const Position& key) const {
+        return std::hash<int>()(key.row) ^ std::hash<int>()(key.col);
+    }
+};

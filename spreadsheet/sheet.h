@@ -1,1 +1,36 @@
-/* разместите здесь свой код */
+#pragma once
+
+#include "cell.h"
+#include "common.h"
+
+#include <functional>
+#include <unordered_map>
+
+
+
+class Sheet : public SheetInterface {
+public:
+    ~Sheet();
+
+    void SetCell(Position pos, std::string text) override;
+
+    const CellInterface* GetCell(Position pos) const override;
+    CellInterface* GetCell(Position pos) override;
+
+    void ClearCell(Position pos) override;
+
+    Size GetPrintableSize() const override;
+
+    void PrintValues(std::ostream& output) const override;
+    void PrintTexts(std::ostream& output) const override;
+
+    // Можете дополнить ваш класс нужными полями и методами
+
+private:
+    // Можете дополнить ваш класс нужными полями и методами
+    bool CheckPosition(const Position& pos) const;
+    bool CheckCyclicDependence(const CellInterface* check_cell, const CellInterface* root_cell);
+
+    std::unordered_map<Position, std::unique_ptr<Cell>, PosHash> cells_;
+};
+
