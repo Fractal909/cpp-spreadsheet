@@ -55,9 +55,13 @@ void Sheet::SetCell(Position pos, std::string text) {
         throw CircularDependencyException("XXX");
     }
 
-    // Update Dependent Cells and invalidate Cahe
+    // Update Dependent Cells
     for (const auto& cell : referenced_cells) {
         GetCell(cell)->AddDependentCell(pos);
+    }
+
+    //Invalidate Cache
+    for (const auto& cell : GetCell(pos)->GetDependentCells()) {
         GetCell(cell)->InvalidateCache();
     }
 }
